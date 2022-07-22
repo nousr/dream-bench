@@ -9,7 +9,7 @@ This repository also hosts common prompt-lists for benchmarking, as well as inst
 
 ## How does it work?
 
-To start off, you will need to create an evaluation adapter for you model so that it can interface with Dream Bench. This function will be called by `dream_bench` and expect an image in return.
+To start off, you will need to create an evaluation adapter for you model so that it can interface with `dream_bench`. This function will be called by `dream_bench` and expect an image in return.
 
 ```python
 from dream_bench.utils import check_args
@@ -55,10 +55,56 @@ def train(model, dataloader, epochs):
     for epoch in range(epochs):
         for x,y in dataloader:
             # do training
+
             ...
+
             # benchmark on some interval
+
             if time_to_benchmark:
                 benchmark(adapter=model.my_evaluation_harness, **benchmark_config)
+```
+
+If you're done training and would like to benchmark a pre-trained model it can be done in the following way.
+
+```python
+from dream_bench import benchmark
+
+# specify what you'd like to benchmark
+
+benchmark_config = {
+    "benchmarks": ["drawbench", "dalle_mini", "simulacra"],
+    "metrics": ["fid", "clip_sim", "aesthetic_rating"],
+    "inputs": ["text", "image_embedding"]
+}
+
+# if your model doesn't have an adapter, you can create one now
+
+def my_evaluation_harness(self, conditioning_args):
+
+        # extract what you need to from the conditioning arguments
+
+        img_emb = conditioning_args["image_embedding"]
+        txt_emb = conditioning_args["text_embedding"]
+
+        # sample with your model's function
+
+        predicted_image = self.sample(img_emb=img_emb, txt_emb=txt_emb)
+
+        # return the image(s) to be evaluated by dream bench
+
+        return predicted_image
+
+def main():
+    # load your model
+
+    model = load_model()
+
+    # call benchmark outside of training
+
+    benchmark(adapter=model.my_evaluation_harness, **benchmark_config)
+
+if __name__ == "__main__":
+    main()
 ```
 
 ## Setup
