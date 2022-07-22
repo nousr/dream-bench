@@ -120,3 +120,15 @@ For more information on how this can be done, take a look at the [dedicated read
 To track your experiments, `dream_bench` utilizes [weights & biases](https://wandb.ai). With `wandb` it is possible to easily view your generations in an easy-to-read format, compile reports, and query against/across your runs.
 
 Additional support may be added for other trackers in the future.
+
+---
+
+## ToDo
+- [ ] Determine dataset format
+- [ ] Provide scripts for generating datasets from prompt lists
+- [ ] Provide guide/scripts for formatting other datasets/url-lists
+- [ ] Build out benchmarking interface for clip-based models
+- [ ] Complete wandb integration
+- [ ] Formalize configuration & available arguments
+- [ ] Publish to PyPi
+- [ ] Add support for distributed benchmarking
