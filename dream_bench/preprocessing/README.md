@@ -20,7 +20,7 @@ The easiest way to get started is to have a model that can generate images from 
 To turn your prompt list into a dataset, you can simply utilize the provided `prompts2datset.py` script to format everything nicely.
 
 ```bash
-python prompts2datset.py --prompt-list ../prompts/drawbench.json --embed-text False --tokenize-text True --prior-embed True
+python prompts2datset.py --prompt-list ../prompts/drawbench.json --embed-text False --tokenize-text True --predict-image True
 ```
 
 Here we call the prompt-processing script and pass it four arguments:
