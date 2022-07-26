@@ -1,1 +1,1 @@
-from .BenchmarkDataset import BenchmarkDataset
+from .benchmark_dataset import BenchmarkDataset
