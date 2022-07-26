@@ -136,3 +136,6 @@ wandb
 
 # scratchwork
 scratchwork.py
+
+# benchmarks folder
+benchmarks
