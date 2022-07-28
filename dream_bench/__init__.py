@@ -1,0 +1,1 @@
+from .dream_bench import benchmark
