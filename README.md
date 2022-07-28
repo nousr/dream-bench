@@ -46,9 +46,13 @@ from dream_bench import benchmark
 # specify what you'd like to benchmark
 
 benchmark_config = {
-    "benchmarks": ["drawbench", "dalle_mini", "simulacra"],
-    "metrics": ["fid", "clip_sim", "aesthetic_rating"],
-    "inputs": ["text", "image_embedding"]
+    "drawbench" : {
+         "metrics": ["fid", "clip_sim", "aesthetic_rating"],
+        "dataset": {
+            "path": "benchmarks/dream_bench/dream_bench-0000.tar",
+            "keys": ["tokenized_text", "prior_image_embed"]
+        }
+    }
 }
 
 def train(model, dataloader, epochs):
