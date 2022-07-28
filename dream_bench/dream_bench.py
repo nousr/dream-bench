@@ -1,6 +1,7 @@
 import torch
-from dream_bench.config import DreamBenchConfig
+import wandb
 from dream_bench.evaluator import Evaluator
+from dream_bench.config import DreamBenchConfig
 
 
 def evaluate(images: torch.Tensor, input: tuple, metrics: list, evaluator: Evaluator):
@@ -10,20 +11,35 @@ def evaluate(images: torch.Tensor, input: tuple, metrics: list, evaluator: Evalu
 
     # log the caption image pairs to wandb
 
-    # TODO: determine best way to log batched input & image pairs
+    captions = input[0]
 
-def benchmark(adapter: function, config: DreamBenchConfig):
+    evaluator.add_pairs(captions=captions, images=images)
+
+    # TODO: other metrics computation
+
+
+def benchmark(adapter, config: DreamBenchConfig):
     """
     Benchmark a model
     """
 
     # load the dataset from the config
-    dataloader = config.data.load()
+    dataloader = config.dataset.load()
+
+    # init the user's wandb
+    wandb.init(
+        project=config.wandb.project, entity=config.wandb.entity, name=config.wandb.name
+    )
 
     evaluator = Evaluator()
 
     # begin benchmarking
     for input in dataloader:
-        images = adapter(**input)
+        images = adapter(*input)
 
-        evaluate(images=images, input=input, metrics=config.metrics, evaluator=evaluator)
+        evaluate(
+            images=images, input=input, metrics=config.metrics, evaluator=evaluator
+        )
+
+    # upload to wandb
+    evaluator.log_table()
