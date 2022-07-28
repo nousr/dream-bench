@@ -140,3 +140,6 @@ scratchwork.py
 # benchmarks folder
 benchmarks
 benchmark
+
+# tars
+*.tar
