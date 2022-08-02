@@ -24,3 +24,7 @@ def import_or_print_error(pkg_name, err_str=None, **kwargs):
         if exists(err_str):
             secho(err_str, **kwargs)
         exit()
+
+def print_ribbon(s, symbol = '=', repeat = 10):
+    flank = symbol * repeat
+    return f'{flank} {s} {flank}'
