@@ -11,7 +11,7 @@ def evaluate(images: torch.Tensor, input: tuple, metrics: list, evaluator: Evalu
 
     # log the caption image pairs to wandb
 
-    captions = input[0]
+    captions = input["caption.txt"]
 
     evaluator.add_pairs(captions=captions, images=images)
 
@@ -34,11 +34,11 @@ def benchmark(adapter, config: DreamBenchConfig):
     evaluator = Evaluator()
 
     # begin benchmarking
-    for input in dataloader:
-        images = adapter(*input)
+    for input_dict in dataloader:
+        images = adapter(input_dict)
 
         evaluate(
-            images=images, input=input, metrics=config.metrics, evaluator=evaluator
+            images=images, input=input_dict, metrics=config.metrics, evaluator=evaluator
         )
 
     # upload to wandb

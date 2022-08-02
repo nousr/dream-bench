@@ -26,8 +26,8 @@ class DALLE2():
 
         # extract what you need to from the conditioning arguments
 
-        img_emb = conditioning_args["image_embedding"]
-        txt_emb = conditioning_args["text_embedding"]
+        img_emb = conditioning_args["prior_image_embedding.npy"]
+        txt_emb = conditioning_args["clip_text_embedding.npy"]
 
         # sample with your model's function
 
@@ -50,7 +50,7 @@ benchmark_config = {
          "metrics": ["fid", "clip_sim", "aesthetic_rating"],
         "dataset": {
             "path": "benchmarks/dream_bench/dream_bench-0000.tar",
-            "keys": ["tokenized_text", "prior_image_embed"]
+            "batch_size" 8
         }
     }
 }
@@ -87,8 +87,8 @@ def my_evaluation_harness(self, conditioning_args):
 
         # extract what you need to from the conditioning arguments
 
-        img_emb = conditioning_args["image_embedding"]
-        txt_emb = conditioning_args["text_embedding"]
+        img_emb = conditioning_args["prior_image_embedding.npy"]
+        txt_emb = conditioning_args["clip_text_embedding.npy"]
 
         # sample with your model's function
 
@@ -128,8 +128,8 @@ Additional support may be added for other trackers in the future.
 ---
 
 ## ToDo
-- [ ] Determine dataset format
-- [ ] Provide scripts for generating datasets from prompt lists
+- [x] Determine dataset format
+- [x] Provide scripts for generating datasets from prompt lists
 - [ ] Provide guide/scripts for formatting other datasets/url-lists
 - [ ] Build out benchmarking interface for clip-based models
 - [ ] Complete wandb integration
