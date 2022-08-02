@@ -1,0 +1,11 @@
+{
+    "metrics": ["table"],
+    "dataset": {
+        "path": "benchmarks/drawbench/drawbench-0000.tar",
+        "batch_size": 16
+    },
+    "wandb": {
+        "entity": "nousr_laion",
+        "project": "dream_bench_test"
+    }
+}

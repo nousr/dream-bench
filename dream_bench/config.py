@@ -1,9 +1,11 @@
+from json import load
 from pydantic import BaseModel
 from typing import List, Literal
 from webdataset import WebDataset
 from torch.utils.data import DataLoader
 
 AVAILABLE_METRICS = Literal["table"]
+
 
 class DatasetConfig(BaseModel):
     path: str
@@ -15,12 +17,18 @@ class DatasetConfig(BaseModel):
 
 
 class WandbConfig(BaseModel):
-    entity: str = None  # your wandb username
-    name: str = None    # name of the run
-    project: str = None # project name
+    entity: str  # your wandb username
+    project: str  # project name
+    name: str = None  # name of the run
 
 
 class DreamBenchConfig(BaseModel):
     dataset: DatasetConfig
+    wandb: WandbConfig
     metrics: List[AVAILABLE_METRICS] = ["table"]
-    wandb: WandbConfig = None
+
+    @classmethod
+    def from_json_path(cls, json_path):
+        with open(json_path) as f:
+            config = load(f)
+        return cls(**config)

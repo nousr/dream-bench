@@ -143,3 +143,6 @@ benchmark
 
 # tars
 *.tar
+
+# configs
+!configs/example_config.json
