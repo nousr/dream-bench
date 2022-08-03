@@ -1,5 +1,4 @@
 import os
-from platform import architecture
 from dream_bench.helpers import (
     import_or_print_error,
     exists,
@@ -8,8 +7,8 @@ from dream_bench.helpers import (
 )
 from urllib.request import urlretrieve
 from torch import cuda, load as torch_load, nn
-from os.path import expanduser  # pylint: disable=import-outside-toplevel
-from urllib.request import urlretrieve  # pylint: disable=import-outside-toplevel
+from os.path import expanduser
+from urllib.request import urlretrieve
 
 CACHE_FOLDER = os.path.join(os.path.expanduser("~"), ".cache", "dream_bench")
 DEFAULT_PRIOR_STATE_URL = (
