@@ -51,9 +51,7 @@ class FID(Metric):
         # reset model
         self._reset()
 
-        assert exists(
-            real_images
-        ), "You must provide a distribution of real images to compute FID."
+        assert exists(real_images), "You must provide a distribution of real images to compute FID."
 
         # Update model
         self.fid.update(imgs=real_images, real=True)
@@ -66,9 +64,7 @@ class FID(Metric):
 class Aesthetic(Metric):
     METRIC_NAME = "Aesthetic"
 
-    def __init__(
-        self, clip_architecture: str = "ViT-L/14", clip_model=None, *args, **kwargs
-    ) -> None:
+    def __init__(self, clip_architecture: str = "ViT-L/14", clip_model=None, *args, **kwargs) -> None:
         super().__init__()
         assert clip_model in [
             "vit_l_14",
@@ -76,13 +72,9 @@ class Aesthetic(Metric):
         ], "You must choose from the available aesthetic models ViT-L/14 or ViT-B/32"
 
         # get models
-        self.aesthetic_model = get_aesthetic_model(
-            clip_model=clip_architecture, *args, **kwargs
-        )
+        self.aesthetic_model = get_aesthetic_model(clip_model=clip_architecture, *args, **kwargs)
         self.clip_model, self.preprocess = (
-            clip_model
-            if exists(clip_model)
-            else load_clip(clip_model=clip_architecture, *args, **kwargs)
+            clip_model if exists(clip_model) else load_clip(clip_model=clip_architecture, *args, **kwargs)
         )
 
     def _embed(self, images: torch.Tensor, *args, **kwargs):
@@ -97,20 +89,14 @@ class Aesthetic(Metric):
 class ClipScore(Metric):
     METRIC_NAME = "ClipScore"
 
-    def __init__(
-        self, clip_architecture: str, clip_model=None, *args, **kwargs
-    ) -> None:
+    def __init__(self, clip_architecture: str, clip_model=None, *args, **kwargs) -> None:
         super().__init__()
 
         self.clip_model, self.preprocess = (
-            clip_model
-            if exists(clip_model)
-            else load_clip(clip_model=clip_architecture, *args, **kwargs)
+            clip_model if exists(clip_model) else load_clip(clip_model=clip_architecture, *args, **kwargs)
         )
 
-    def compute(
-        self, images: torch.Tensor, tokenized_text: torch.Tensor, *args, **kwargs
-    ):
+    def compute(self, images: torch.Tensor, tokenized_text: torch.Tensor, *args, **kwargs):
         images = self.preprocess(images, *args, **kwargs)
         image_logits, _ = self.clip_model(images, tokenized_text, *args, **kwargs)
 
@@ -128,17 +114,11 @@ class Evaluator:
     def add_pairs(self, captions: list, images: torch.tensor):
         """Add caption/image pairs to the table"""
 
-        assert len(captions) == len(
-            images
-        ), "Images and captions do not align along first dimension"
-        images = [
-            wandb.Image(img.permute(1, 2, 0).cpu().detach().numpy()) for img in images
-        ]
+        assert len(captions) == len(images), "Images and captions do not align along first dimension"
+        images = [wandb.Image(img.permute(1, 2, 0).cpu().detach().numpy()) for img in images]
         self.data += list(zip(captions, images))
 
     def log_table(self):
-        wandb.log(
-            {"predictions": wandb.Table(columns=["caption", "image"], data=self.data)}
-        )
+        wandb.log({"predictions": wandb.Table(columns=["caption", "image"], data=self.data)})
 
         print("logged!")

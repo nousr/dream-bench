@@ -27,9 +27,7 @@ def benchmark(adapter, config: DreamBenchConfig):
     dataloader = config.dataset.load()
 
     # init the user's wandb
-    wandb.init(
-        project=config.wandb.project, entity=config.wandb.entity, name=config.wandb.name
-    )
+    wandb.init(project=config.wandb.project, entity=config.wandb.entity, name=config.wandb.name)
 
     evaluator = Evaluator()
 
@@ -37,9 +35,7 @@ def benchmark(adapter, config: DreamBenchConfig):
     for input_dict in dataloader:
         images = adapter(input_dict)
 
-        evaluate(
-            images=images, input=input_dict, metrics=config.metrics, evaluator=evaluator
-        )
+        evaluate(images=images, input=input_dict, metrics=config.metrics, evaluator=evaluator)
 
     # upload to wandb
     evaluator.log_table()

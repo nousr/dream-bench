@@ -16,9 +16,7 @@ import torch
 
 @lru_cache()
 def default_bpe():
-    return os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "data/bpe_simple_vocab_16e6.txt"
-    )
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/bpe_simple_vocab_16e6.txt")
 
 
 @lru_cache()
@@ -32,11 +30,7 @@ def bytes_to_unicode():
     To avoid that, we want lookup tables between utf-8 bytes and unicode strings.
     And avoids mapping to whitespace/control characters the bpe code barfs on.
     """
-    bs = (
-        list(range(ord("!"), ord("~") + 1))
-        + list(range(ord("¡"), ord("¬") + 1))
-        + list(range(ord("®"), ord("ÿ") + 1))
-    )
+    bs = list(range(ord("!"), ord("~") + 1)) + list(range(ord("¡"), ord("¬") + 1)) + list(range(ord("®"), ord("ÿ") + 1))
     cs = bs[:]
     n = 0
     for b in range(2**8):
@@ -142,18 +136,12 @@ class SimpleTokenizer(object):
         text = whitespace_clean(basic_clean(text)).lower()
         for token in re.findall(self.pat, text):
             token = "".join(self.byte_encoder[b] for b in token.encode("utf-8"))
-            bpe_tokens.extend(
-                self.encoder[bpe_token] for bpe_token in self.bpe(token).split(" ")
-            )
+            bpe_tokens.extend(self.encoder[bpe_token] for bpe_token in self.bpe(token).split(" "))
         return bpe_tokens
 
     def decode(self, tokens):
         text = "".join([self.decoder[token] for token in tokens])
-        text = (
-            bytearray([self.byte_decoder[c] for c in text])
-            .decode("utf-8", errors="replace")
-            .replace("</w>", " ")
-        )
+        text = bytearray([self.byte_decoder[c] for c in text]).decode("utf-8", errors="replace").replace("</w>", " ")
         return text
 
     def tokenize(self, texts, context_length=77, truncate_text=False):
@@ -168,9 +156,7 @@ class SimpleTokenizer(object):
                 if truncate_text:
                     tokens = tokens[:context_length]
                 else:
-                    raise RuntimeError(
-                        f"Input {texts[i]} is too long for context length {context_length}"
-                    )
+                    raise RuntimeError(f"Input {texts[i]} is too long for context length {context_length}")
             result[i, : len(tokens)] = torch.tensor(tokens)
 
         return result

@@ -116,9 +116,14 @@ Additional support may be added for other trackers in the future.
 ## ToDo
 - [x] Determine dataset format
 - [x] Provide scripts for generating datasets from prompt lists
-- [ ] Provide guide/scripts for formatting other datasets/url-lists
+- [x] Block in more metrics
+- [x] Add continuous integration
+- [x] Add wandb integration
+- [x] Build configuration
+- [ ] Lint project & Capture unecessary warnings
+- [ ] Prioritize benchmarking for ongoing training runs
 - [ ] Build out benchmarking interface for clip-based models
-- [ ] Complete wandb integration
-- [ ] Formalize configuration & available arguments
+- [ ] Provide guide/scripts for formatting other datasets/url-lists
+- [ ] Add More tests
 - [ ] Publish to PyPi
 - [ ] Add support for distributed benchmarking
