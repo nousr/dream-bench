@@ -3,9 +3,9 @@
 
 ## What does it do?
 
-`dream_bench` provides a simplified interface for benchmarking your image-generation.
+`dream_bench` provides a simplified interface for benchmarking your image-generation models.
 
-This repository also hosts common prompt-lists for benchmarking, as well as instructions for preparing a dataset to perform a more comprehensive evaluation evaluation.
+This repository also hosts common prompt-lists for benchmarking, as well as instructions for preparing a dataset to perform a more comprehensive evaluation.
 
 ## How does it work?
 
