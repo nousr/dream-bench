@@ -111,10 +111,7 @@ class ClipScore(Metric):
     def compute(
         self, images: torch.Tensor, tokenized_text: torch.Tensor, *args, **kwargs
     ):
-        # preprocess images for clip
         images = self.preprocess(images, *args, **kwargs)
-
-        # compute logits
         image_logits, _ = self.clip_model(images, tokenized_text, *args, **kwargs)
 
         return image_logits.softmax(dim=-1).cpu().mean().item()
