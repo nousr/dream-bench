@@ -1,8 +1,15 @@
 import os
-from dream_bench.helpers import import_or_print_error, exists, filename_from_path, is_url
+from platform import architecture
+from dream_bench.helpers import (
+    import_or_print_error,
+    exists,
+    filename_from_path,
+    is_url,
+)
 from urllib.request import urlretrieve
-from torch import cuda, load as torch_load
-
+from torch import cuda, load as torch_load, nn
+from os.path import expanduser  # pylint: disable=import-outside-toplevel
+from urllib.request import urlretrieve  # pylint: disable=import-outside-toplevel
 
 CACHE_FOLDER = os.path.join(os.path.expanduser("~"), ".cache", "dream_bench")
 DEFAULT_PRIOR_STATE_URL = (
@@ -119,3 +126,37 @@ def load_prior(checkpoint_path: str, config_path: str):
         diffusion_prior.float()
 
     return diffusion_prior
+
+
+def get_aesthetic_model(clip_model="ViT-L/14"):
+    """load the aethetic model"""
+    if clip_model == "ViT-L/14":
+        model_file = "vit_l_14"
+    elif clip_model == "ViT-B/32":
+        model_file = "vit_b_32"
+    else:
+        raise NotImplementedError(
+            "No aesthetic model has been trained on that architecture."
+        )
+
+    home = expanduser("~")
+    cache_folder = home + "/.cache/emb_reader"
+    path_to_model = cache_folder + "/sa_0_4_" + model_file + "_linear.pth"
+    if not os.path.exists(path_to_model):
+        os.makedirs(cache_folder, exist_ok=True)
+        url_model = (
+            "https://github.com/LAION-AI/aesthetic-predictor/blob/main/sa_0_4_"
+            + clip_model
+            + "_linear.pth?raw=true"
+        )
+        urlretrieve(url_model, path_to_model)
+    if clip_model == "ViT-L/14":
+        m = nn.Linear(768, 1)
+    elif clip_model == "ViT-B/32":
+        m = nn.Linear(512, 1)
+    else:
+        raise ValueError()
+    s = torch_load(path_to_model)
+    m.load_state_dict(s)
+    m.eval()
+    return m
