@@ -106,6 +106,7 @@ class ClipScore:
 
         return image_logits.softmax(dim=-1).cpu().mean().item()
 
+
 class WandbTable:
     """
     Generate a WANDB caption/image table given a list of images and captions
@@ -113,6 +114,7 @@ class WandbTable:
 
     def __init__(self) -> None:
         pass
+
 
 class Evaluator:
     """

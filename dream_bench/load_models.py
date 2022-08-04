@@ -8,14 +8,19 @@ from dream_bench.helpers import (
 from urllib.request import urlretrieve
 from torch import cuda, load as torch_load, nn
 from os.path import expanduser
-from urllib.request import urlretrieve
 
 CACHE_FOLDER = os.path.join(os.path.expanduser("~"), ".cache", "dream_bench")
-DEFAULT_PRIOR_STATE_URL = "https://huggingface.co/laion/DALLE2-PyTorch/resolve/main/prior/latest.pth"
-DEFAULT_PRIOR_CONFIG_URL = "https://huggingface.co/laion/DALLE2-PyTorch/raw/main/prior/prior_config.json"
+DEFAULT_PRIOR_STATE_URL = (
+    "https://huggingface.co/laion/DALLE2-PyTorch/resolve/main/prior/latest.pth"
+)
+DEFAULT_PRIOR_CONFIG_URL = (
+    "https://huggingface.co/laion/DALLE2-PyTorch/raw/main/prior/prior_config.json"
+)
 
 
 def _load_open_clip(clip_model, use_jit=True, device="cuda"):
+    "Load a clip model from the open-clip library"
+
     open_clip = import_or_print_error(
         "open_clip",
         err_str="You have requested an open-clip model but do not have the library installed.",
@@ -32,6 +37,8 @@ def _load_open_clip(clip_model, use_jit=True, device="cuda"):
 
 
 def load_clip(clip_model, use_jit=True):
+    "Load a clip model from openai or open-clip"
+
     device = "cuda" if cuda.is_available() else "cpu"
 
     if clip_model.startswith("open_clip:"):
@@ -51,9 +58,7 @@ def load_clip(clip_model, use_jit=True):
 
 
 def _download_prior(state_url: str, config_url: str):
-    """
-    Download a diffusion prior and configuration file from a url
-    """
+    "Download a diffusion prior and configuration file from a url"
 
     # create cache folders
 
@@ -77,6 +82,8 @@ def _download_prior(state_url: str, config_url: str):
 
 
 def load_prior(checkpoint_path: str, config_path: str):
+    "Load a dalle2-pytorch diffusion prior model"
+
     device = "cuda" if cuda.is_available() else "cpu"
 
     dalle2_train_config = import_or_print_error(
@@ -104,7 +111,9 @@ def load_prior(checkpoint_path: str, config_path: str):
 
     # load configuration from path
 
-    prior_config = dalle2_train_config.TrainDiffusionPriorConfig.from_json_path(config_path)
+    prior_config = dalle2_train_config.TrainDiffusionPriorConfig.from_json_path(
+        config_path
+    )
     prior_config = prior_config.prior
 
     # create model from config
@@ -128,7 +137,9 @@ def get_aesthetic_model(clip_model="ViT-L/14"):
     elif clip_model == "ViT-B/32":
         model_file = "vit_b_32"
     else:
-        raise NotImplementedError("No aesthetic model has been trained on that architecture.")
+        raise NotImplementedError(
+            "No aesthetic model has been trained on that architecture."
+        )
 
     home = expanduser("~")
     cache_folder = home + "/.cache/emb_reader"
@@ -136,7 +147,9 @@ def get_aesthetic_model(clip_model="ViT-L/14"):
     if not os.path.exists(path_to_model):
         os.makedirs(cache_folder, exist_ok=True)
         url_model = (
-            "https://github.com/LAION-AI/aesthetic-predictor/blob/main/sa_0_4_" + clip_model + "_linear.pth?raw=true"
+            "https://github.com/LAION-AI/aesthetic-predictor/blob/main/sa_0_4_"
+            + clip_model
+            + "_linear.pth?raw=true"
         )
         urlretrieve(url_model, path_to_model)
     if clip_model == "ViT-L/14":

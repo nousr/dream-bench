@@ -4,7 +4,7 @@ from typing import List, Literal, Optional
 from webdataset import WebDataset
 from torch.utils.data import DataLoader
 
-AVAILABLE_METRICS = Literal["table"]
+METRICS = Literal["table"]
 
 
 class DatasetConfig(BaseModel):
@@ -20,16 +20,16 @@ class WandbConfig(BaseModel):
     entity: str  # your wandb username
     project: str  # project name
     name: Optional[str] = None
+
     class Config:
         # Each individual log type has it's own arguments that will be passed through the config
         extra = "allow"
 
 
-
 class DreamBenchConfig(BaseModel):
     dataset: DatasetConfig
     wandb: WandbConfig
-    metrics: List[AVAILABLE_METRICS] = ["table"]
+    metrics: List[METRICS] = ["table"]
 
     @classmethod
     def from_json_path(cls, json_path):
