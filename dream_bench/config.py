@@ -1,6 +1,6 @@
 from json import load
 from pydantic import BaseModel
-from typing import List, Literal
+from typing import List, Literal, Optional
 from webdataset import WebDataset
 from torch.utils.data import DataLoader
 
@@ -19,7 +19,11 @@ class DatasetConfig(BaseModel):
 class WandbConfig(BaseModel):
     entity: str  # your wandb username
     project: str  # project name
-    name: str = None  # name of the run
+    name: Optional[str] = None
+    class Config:
+        # Each individual log type has it's own arguments that will be passed through the config
+        extra = "allow"
+
 
 
 class DreamBenchConfig(BaseModel):
@@ -29,6 +33,6 @@ class DreamBenchConfig(BaseModel):
 
     @classmethod
     def from_json_path(cls, json_path):
-        with open(json_path) as f:
+        with open(json_path, encoding="utf-8") as f:
             config = load(f)
         return cls(**config)
