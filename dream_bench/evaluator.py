@@ -3,7 +3,8 @@ import torch
 from dream_bench.helpers import exists
 from dream_bench.load_models import get_aesthetic_model, load_clip
 from torchmetrics.image.fid import FrechetInceptionDistance
-from typing import List, Any
+from typing import List, Any, Dict
+
 
 # TODO: think about relaxing the constraint that metrics must return a single float
 
@@ -36,18 +37,21 @@ class FID:
         self.fid.reset()
 
     @with_uint8
-    def compute(self, images: torch.Tensor, real_images: torch.Tensor):
+    def compute(self, model_input: Dict[torch.Tensor], model_output: torch.Tensor, *args, **kwargs):
         """Compute FID"""
         # reset model
         self._reset()
 
+        # ensure the metric can be computed
         assert exists(
-            real_images
+            model_input["raw_image.npy"]
         ), "You must provide a distribution of real images to compute FID."
 
+        real_images = model_input["raw_image.npy"]
+
         # Update model
-        self.fid.update(imgs=real_images, real=True)
-        self.fid.update(imgs=images, real=False)
+        self.fid.update(imgs=real_images, real=True, *args, **kwargs)
+        self.fid.update(imgs=model_output, real=False, *args, **kwargs)
 
         # Compute and return FID
         return self.fid.compute().cpu().item()
@@ -79,8 +83,8 @@ class Aesthetic:
         images = self.preprocess(images, *args, **kwargs)
         return self.clip_model.encode_image(images, *args, **kwargs)
 
-    def compute(self, images: torch.Tensor, *args, **kwargs):
-        embeddings = self._embed(images, *args, **kwargs)
+    def compute(self, model_output: torch.Tensor, *args, **kwargs):
+        embeddings = self._embed(model_output, *args, **kwargs)
         return self.aesthetic_model(embeddings, *args, **kwargs).cpu().mean().item()
 
 
@@ -98,10 +102,11 @@ class ClipScore:
             else load_clip(clip_model=clip_architecture)
         )
 
-    def compute(
-        self, images: torch.Tensor, tokenized_text: torch.Tensor, *args, **kwargs
-    ):
-        images = self.preprocess(images, *args, **kwargs)
+    def compute(self, model_input: Dict[torch.Tensor], model_output: torch.Tensor, *args, **kwargs):
+        # unpack model input
+        tokenized_text = model_input["tokenized_text.npy"]
+
+        images = self.preprocess(model_output)
         image_logits, _ = self.clip_model(images, tokenized_text, *args, **kwargs)
 
         return image_logits.softmax(dim=-1).cpu().mean().item()
@@ -123,6 +128,18 @@ class Evaluator:
 
     def __init__(self) -> None:
         self.data: List[Any] = []
+        self.metrics: List[Any] = []
+
+    def evaluate(self, model_input: dict, model_output: torch.Tensor):
+        """
+        Takes model input and computes metrics for each model output.
+        """
+        scores = {}
+
+        for metric in self.metrics:
+            scores[metric.METRIC_NAME] = metric.compute(model_input, model_output)
+
+        # TODO log metrics wandb with model output
 
     def add_pairs(self, captions: list, images: torch.Tensor):
         """Add caption/image pairs to the table"""
