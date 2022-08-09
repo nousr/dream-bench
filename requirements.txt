@@ -1,8 +1,8 @@
-click>=8.*
-ftfy>=6.*
-pydantic>=1.9.*
-regex>=2022.7.*
-torch>=1.*
-torchmetrics>=0.8.*
-wandb>=0.12.*
-webdataset==0.2.*
+click>=8.*, < 1.0
+ftfy>=6.*, < 0.7
+pydantic>=1.9.*, < 2.0.0
+regex>=2022.7.*, < 2023.0.0
+torch>=1.*, < 1.13
+torchmetrics>=0.8.*, < 1.0.0
+wandb>=0.12.*, < 0.13.0
+webdataset>=0.2.*, < 0.3.0
