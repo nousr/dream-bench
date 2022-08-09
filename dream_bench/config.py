@@ -29,7 +29,7 @@ class EvaluatorConfig(BaseModel):
     metrics: List[METRICS] = ["Aesthetic"]
 
     def load(self):
-        return Evaluator(self.metrics) # pylint: disable=E1121
+        return Evaluator(self.metrics)  # pylint: disable=E1121
 
 
 class DreamBenchConfig(BaseModel):
