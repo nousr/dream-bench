@@ -45,9 +45,7 @@ class FID:
         self._reset()
 
         # ensure the metric can be computed
-        assert exists(
-            model_input["raw_image.npy"]
-        ), "You must provide a distribution of real images to compute FID."
+        assert exists(model_input["raw_image.npy"]), "You must provide a distribution of real images to compute FID."
 
         real_images = model_input["raw_image.npy"]
 
@@ -75,11 +73,7 @@ class Aesthetic:
         # get models
         self.aesthetic_model = get_aesthetic_model(clip_model=clip_architecture)
 
-        self.clip_model, self.preprocess = (
-            clip_model
-            if exists(clip_model)
-            else load_clip(clip_model=clip_architecture)
-        )
+        self.clip_model, self.preprocess = clip_model if exists(clip_model) else load_clip(clip_model=clip_architecture)
 
     def _embed(self, images: torch.Tensor, *args, **kwargs):
         images = self.preprocess(images, *args, **kwargs)
@@ -98,11 +92,7 @@ class ClipScore:
     METRIC_NAME = "ClipScore"
 
     def __init__(self, clip_architecture: str, clip_model=None) -> None:
-        self.clip_model, self.preprocess = (
-            clip_model
-            if exists(clip_model)
-            else load_clip(clip_model=clip_architecture)
-        )
+        self.clip_model, self.preprocess = clip_model if exists(clip_model) else load_clip(clip_model=clip_architecture)
 
     def compute(
         self,
@@ -166,18 +156,12 @@ class Evaluator:
     def add_pairs(self, captions: list, images: torch.Tensor):
         """Add caption/image pairs to the table"""
 
-        assert len(captions) == len(
-            images
-        ), "Images and captions do not align along first dimension"
-        wandb_images = [
-            wandb.Image(img.permute(1, 2, 0).cpu().detach().numpy()) for img in images
-        ]
+        assert len(captions) == len(images), "Images and captions do not align along first dimension"
+        wandb_images = [wandb.Image(img.permute(1, 2, 0).cpu().detach().numpy()) for img in images]
         self.data += list(zip(captions, wandb_images))
 
     def log_table(self):
-        wandb.log(
-            {"predictions": wandb.Table(columns=["caption", "image"], data=self.data)}
-        )
+        wandb.log({"predictions": wandb.Table(columns=["caption", "image"], data=self.data)})
 
         print("logged!")
 
