@@ -1,12 +1,14 @@
 import wandb
 import torch
+import pandas as pd
 from dream_bench.helpers import exists
 from dream_bench.load_models import get_aesthetic_model, load_clip
 from torchmetrics.image.fid import FrechetInceptionDistance
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Literal
 
+# Custom Types
 
-# TODO: think about relaxing the constraint that metrics must return a single float
+METRICS = Literal["FID", "Aesthetic", "ClipScore"]
 
 # decorators
 
@@ -43,7 +45,9 @@ class FID:
         self._reset()
 
         # ensure the metric can be computed
-        assert exists(model_input["raw_image.npy"]), "You must provide a distribution of real images to compute FID."
+        assert exists(
+            model_input["raw_image.npy"]
+        ), "You must provide a distribution of real images to compute FID."
 
         real_images = model_input["raw_image.npy"]
 
@@ -71,7 +75,11 @@ class Aesthetic:
         # get models
         self.aesthetic_model = get_aesthetic_model(clip_model=clip_architecture)
 
-        self.clip_model, self.preprocess = clip_model if exists(clip_model) else load_clip(clip_model=clip_architecture)
+        self.clip_model, self.preprocess = (
+            clip_model
+            if exists(clip_model)
+            else load_clip(clip_model=clip_architecture)
+        )
 
     def _embed(self, images: torch.Tensor, *args, **kwargs):
         images = self.preprocess(images, *args, **kwargs)
@@ -90,9 +98,22 @@ class ClipScore:
     METRIC_NAME = "ClipScore"
 
     def __init__(self, clip_architecture: str, clip_model=None) -> None:
-        self.clip_model, self.preprocess = clip_model if exists(clip_model) else load_clip(clip_model=clip_architecture)
+        self.clip_model, self.preprocess = (
+            clip_model
+            if exists(clip_model)
+            else load_clip(clip_model=clip_architecture)
+        )
 
-    def compute(self, model_input: Dict[str, torch.Tensor], model_output: torch.Tensor, *args, **kwargs):
+    def compute(
+        self,
+        model_input: Dict[str, torch.Tensor],
+        model_output: torch.Tensor,
+        *args,
+        **kwargs,
+    ):
+
+        "Compute the clip score of a given image/caption pair."
+
         # unpack model input
         tokenized_text = model_input["tokenized_text.npy"]
 
@@ -102,43 +123,77 @@ class ClipScore:
         return image_logits.softmax(dim=-1).cpu().mean().item()
 
 
-class WandbTable:
-    """
-    Generate a WANDB caption/image table given a list of images and captions
-    """
-
-    def __init__(self) -> None:
-        pass
-
-
 class Evaluator:
     """
     A class that facilliatates calculating various metrics given input from a model
     """
 
-    def __init__(self) -> None:
+    def __init__(self, metrics: List[METRICS]) -> None:
         self.data: List[Any] = []
-        self.metrics: List[Any] = []
+        self.num_entries: int = 0
+        self.table: wandb.Table = wandb.Table()
+        self.metrics: set = self._metric_factory(metrics)
 
     def evaluate(self, model_input: dict, model_output: torch.Tensor):
         """
         Takes model input and computes metrics for each model output.
         """
-        scores = {}
+        self.num_entries += 1
+
+        scores = {
+            "captions": model_input["caption.txt"],
+        }
 
         for metric in self.metrics:
             scores[metric.METRIC_NAME] = metric.compute(model_input, model_output)
 
-        # TODO log metrics wandb with model output
+        # make into pd dataframe and back to format properly for wandb tables
+        simple_table_entries = pd.DataFrame.from_dict(scores)
+
+        # convert model output to wandb image
+        wandb_images = [wandb.Image(img) for img in model_output]
+
+        # create a wandb table to log all the computed information
+
+        self.table.columns = list(scores.keys())
+
+        self.table.add_data(simple_table_entries.to_numpy())
+
+        self.table.add_column(name="predicted images", data=wandb_images)
+
+        wandb.log({f"Evaluation Batch # {self.num_entries}": self.table})
 
     def add_pairs(self, captions: list, images: torch.Tensor):
         """Add caption/image pairs to the table"""
 
-        assert len(captions) == len(images), "Images and captions do not align along first dimension"
-        wandb_images = [wandb.Image(img.permute(1, 2, 0).cpu().detach().numpy()) for img in images]
+        assert len(captions) == len(
+            images
+        ), "Images and captions do not align along first dimension"
+        wandb_images = [
+            wandb.Image(img.permute(1, 2, 0).cpu().detach().numpy()) for img in images
+        ]
         self.data += list(zip(captions, wandb_images))
 
     def log_table(self):
-        wandb.log({"predictions": wandb.Table(columns=["caption", "image"], data=self.data)})
+        wandb.log(
+            {"predictions": wandb.Table(columns=["caption", "image"], data=self.data)}
+        )
 
         print("logged!")
+
+    def _metric_factory(self, metrics: List[METRICS]):
+        "Create an iterable of metric classes for the evaluator to use, given a list of metric names."
+
+        metric_set: set = set()
+
+        for metric in metrics:
+            if metric == "Aesthetic":
+                metric_set.add(Aesthetic)
+            elif metrics == "FID":
+                metric_set.add(FID)
+            elif metrics == "ClipScore":
+                metric_set.add(ClipScore)
+            else:
+                raise KeyError("That metric does not exist, or is mispelled.")
+
+        return metric_set
