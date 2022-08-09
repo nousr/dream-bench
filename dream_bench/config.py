@@ -1,10 +1,9 @@
 from json import load
 from pydantic import BaseModel
-from typing import List, Literal, Optional
+from typing import List, Optional
 from webdataset import WebDataset
 from torch.utils.data import DataLoader
-
-METRICS = Literal["table"]
+from dream_bench.evaluator import Evaluator, METRICS
 
 
 class DatasetConfig(BaseModel):
@@ -26,10 +25,17 @@ class WandbConfig(BaseModel):
         extra = "allow"
 
 
+class EvaluatorConfig(BaseModel):
+    metrics: List[METRICS] = ["Aesthetic"]
+
+    def load(self):
+        return Evaluator(self.metrics)
+
+
 class DreamBenchConfig(BaseModel):
     dataset: DatasetConfig
     wandb: WandbConfig
-    metrics: List[METRICS] = ["table"]
+    evaluator: EvaluatorConfig
 
     @classmethod
     def from_json_path(cls, json_path):
