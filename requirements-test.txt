@@ -1,7 +1,7 @@
-black==22.6.0
-mypy==0.971
-pylint==2.14.5
-types-regex==2022.7.25.0
-pytest-cov==3.0.0
-pytest-xdist==2.5.0
-pytest==7.1.2
+black>=22.*
+mypy>=0.971
+pylint>=2.13.*
+types-regex>=2022.*
+pytest-cov>=3.*
+pytest-xdist>=2.*
+pytest>=7.*
