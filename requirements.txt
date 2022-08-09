@@ -3,6 +3,6 @@ ftfy>=6.*
 pydantic>=1.9.*
 regex>=2022.7.*
 torch>=1.*
-torchmetrics>=0.9.*
-wandb>=0.13.*
+torchmetrics>=0.8.*
+wandb>=0.12.*
 webdataset==0.2.*
