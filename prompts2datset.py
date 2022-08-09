@@ -17,9 +17,7 @@ TOKENIZER_CONTEXT_LENGTH = 77
 TOKENIZER_TRUNCATE_TEXT = True
 
 
-def txt2embeddings(
-    model: Module, architecture: str, text: torch.Tensor, batch_size: int
-):
+def txt2embeddings(model: Module, architecture: str, text: torch.Tensor, batch_size: int):
     """
     Predict embeddings for captions using a given batch size.
 
@@ -38,9 +36,7 @@ def txt2embeddings(
         elif architecture == "clip":
             embeds.append(model.encode_text(model_input).detach().cpu())
         else:
-            click.secho(
-                f"The {architecture} architecture is not yet supported.", fg="red"
-            )
+            click.secho(f"The {architecture} architecture is not yet supported.", fg="red")
             exit(1)
 
     return torch.cat(embeds, dim=0).contiguous().numpy()
@@ -100,9 +96,7 @@ def wds_create(
             if embed_text:
                 tar_keys["clip_text_embedding.npy"] = clip_text_embeddings[idx]
             if tokenize_text:
-                tar_keys["tokenized_text.npy"] = (
-                    tokenized_text[idx].detach().cpu().numpy()
-                )
+                tar_keys["tokenized_text.npy"] = tokenized_text[idx].detach().cpu().numpy()
 
             sink.write(tar_keys)
 
@@ -229,9 +223,7 @@ def main(
     prior_model = None
 
     if predict_image:
-        prior_model = load_prior(
-            checkpoint_path=prior_checkpoint, config_path=prior_config
-        )
+        prior_model = load_prior(checkpoint_path=prior_checkpoint, config_path=prior_config)
 
     # begin creating webdataset
 

@@ -27,9 +27,7 @@ def benchmark(adapter, config: DreamBenchConfig):
     dataloader = config.dataset.load()
 
     # init the user's wandb
-    wandb.init(
-        project=config.wandb.project, entity=config.wandb.entity, name=config.wandb.name
-    )
+    wandb.init(project=config.wandb.project, entity=config.wandb.entity, name=config.wandb.name)
 
     evaluator = Evaluator()
 
