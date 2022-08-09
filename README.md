@@ -120,7 +120,8 @@ Additional support may be added for other trackers in the future.
 - [x] Add continuous integration
 - [x] Add wandb integration
 - [x] Build configuration
-- [ ] Lint project & Capture unecessary warnings
+- [x] Lint project & Capture unecessary warnings
+- [ ] Efficiently track runs with wandb
 - [ ] Prioritize benchmarking for ongoing training runs
 - [ ] Build out benchmarking interface for clip-based models
 - [ ] Provide guide/scripts for formatting other datasets/url-lists
