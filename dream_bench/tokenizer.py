@@ -117,7 +117,7 @@ class SimpleTokenizer:
                     j = word.index(first, i)
                     new_word.extend(word[i:j])
                     i = j
-                except _ as _:
+                except Exception as _:  # pylint: disable=broad-except
                     new_word.extend(word[i:])
                     break
 
