@@ -32,7 +32,7 @@ def _load_open_clip(clip_model, use_jit=True, device="cuda"):
     return model, preprocess
 
 
-def load_clip(clip_model, use_jit=True):
+def load_clip(clip_model, use_jit=False):
     "Load a clip model from openai or open-clip"
 
     device = "cuda" if cuda.is_available() else "cpu"
@@ -139,7 +139,7 @@ def get_aesthetic_model(clip_model="ViT-L/14"):
     if not os.path.exists(path_to_model):
         os.makedirs(cache_folder, exist_ok=True)
         url_model = (
-            "https://github.com/LAION-AI/aesthetic-predictor/blob/main/sa_0_4_" + clip_model + "_linear.pth?raw=true"
+            "https://github.com/LAION-AI/aesthetic-predictor/blob/main/sa_0_4_" + model_file + "_linear.pth?raw=true"
         )
         urlretrieve(url_model, path_to_model)
     if clip_model == "ViT-L/14":
