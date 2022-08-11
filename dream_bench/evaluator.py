@@ -3,7 +3,6 @@ import wandb
 import torch
 import numpy as np
 import pandas as pd
-from click import secho
 from dream_bench.helpers import exists
 from dream_bench.load_models import get_aesthetic_model, load_clip
 from torchmetrics.image.fid import FrechetInceptionDistance
