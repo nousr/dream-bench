@@ -1,12 +1,15 @@
+import os
 import wandb
 import torch
 import numpy as np
 import pandas as pd
+from click import secho
 from dream_bench.helpers import exists
 from dream_bench.load_models import get_aesthetic_model, load_clip
 from torchmetrics.image.fid import FrechetInceptionDistance
 from typing import List, Any, Dict, Literal
 from torchvision.transforms.functional import to_pil_image
+from pathlib import Path
 
 # TODO: fix devices
 # TODO: fix table formatting
@@ -183,36 +186,50 @@ class Evaluator:
     A class that facilliatates calculating various metrics given input from a model
     """
 
-    def __init__(self, metrics: List[METRICS]) -> None:
+    def __init__(self, metrics: List[METRICS], save_path: str) -> None:
         self.data: List[Any] = []
         self.num_entries: int = 0
         self.metric_names: List[str] = list(metrics)
         self.metrics: set = self._metric_factory(metrics)
+
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        # wandb tools
-        self.table_artifact: wandb.Artifact = wandb.Artifact(
-            name="Evaluation Table",
-            type="Table",
-            description="A persistent table used to log evaluation data.",
-        )
-        self.table: wandb.Table = wandb.Table(columns=["Key", "Captions", "Predictions"] + list(metrics))
+        self.save_path = Path(save_path)
+        os.makedirs(save_path, exist_ok=True)
 
-        # add table to artifact to be logged
-        self.table_artifact.add(self.table, name="Evaluation Table")
+        self.prediction_table = wandb.Table(columns=["Key", "Captions", "Predictions"])
+        self.metric_table = wandb.Table(columns=["Key", *self.metric_names])
 
-    def evaluate(self, model_input: dict, model_output: torch.Tensor):
+    def _record_predictions(self, model_input: dict, model_output: torch.Tensor):
         """
-        Takes model input and computes metrics for each model output.
+        Record model output and save to disk, then track it in a table using wandb.
         """
-        self.num_entries += 1
+        captions = model_input["caption.txt"]
+        keys = model_input["__key__"]
+
+        for key, caption, prediction in zip(keys, captions, model_output):
+            # save image to disk
+            pil_image = to_pil_image(prediction)
+            prediction_path = Path(f"{self.save_path}/prediction_{self.num_entries:06d}.jpg")
+            pil_image.save(prediction_path)
+
+            # create associated wandb.Image and save to wandb as a file
+            wandb_image = wandb.Image(str(prediction_path), caption=caption)
+            self.prediction_table.add_data(key, caption, wandb_image)
+            wandb.save(str(prediction_path))
+
+            self.num_entries += 1
+
+    def _record_metrics(self, model_input: dict, model_output: torch.Tensor):
+        """
+        Evaluate a model's output and record the results to a table.
+        """
 
         scores = {
             "Key": model_input["__key__"],
-            "Captions": model_input["caption.txt"],
-            "Predictions": [wandb.Image(img) for img in model_output],
         }
 
+        # loop through each metric and compute the results
         for metric in self.metrics:
             scores[metric.METRIC_NAME] = (
                 metric().compute(
@@ -225,26 +242,42 @@ class Evaluator:
             ).squeeze()
 
         # cast dict to pandas array for easy adding
-        entries = pd.DataFrame.from_dict(scores)[["Key", "Captions", "Predictions", *self.metric_names]].to_numpy()
+        for row in pd.DataFrame.from_dict(scores)[["Key", *self.metric_names]].to_numpy():
+            self.metric_table.add_data(*row)
 
-        for row in entries:
-            self.table.add_data(*row)
+    def evaluate(self, model_input: dict, model_output: torch.Tensor):
+        """
+        Record the model's output and incrementally evaluate it.
+        """
+        self._record_predictions(model_input=model_input, model_output=model_output)
+        self._record_metrics(model_input=model_input, model_output=model_output)
+        print(f"Evaluated Up To #{self.num_entries:06d}")
 
-        wandb.log({"Evaluation Batch": self.table})
-        scores.pop("Predictions")
-        print(f"Logged!:\n\t{scores}")
+    def log(self):
+        """
+        Log all the results to wandb.
+        """
 
-    def add_pairs(self, captions: list, images: torch.Tensor):
-        """Add caption/image pairs to the table"""
+        # join both tables and publish as a third artifact
 
-        assert len(captions) == len(images), "Images and captions do not align along first dimension"
-        wandb_images = [wandb.Image(img.permute(1, 2, 0).cpu().detach().numpy()) for img in images]
-        self.data += list(zip(captions, wandb_images))
+        master_table = wandb.JoinedTable(self.prediction_table, self.metric_table, join_key="Key")
 
-    def log_table(self):
-        wandb.log({"predictions": wandb.Table(columns=["caption", "image"], data=self.data)})
+        # log the tables
+        wandb.log(
+            {
+                "Metric Table": self.metric_table,
+                "Predictions Table": self.prediction_table,
+                "Evaluation Report": master_table,
+            }
+        )
 
-        print("logged!")
+        master_table_artifact = wandb.Artifact(
+            name="Master_Table",
+            description="A collection of all computed metrics for this evaluation run",
+            type="evaluation_table",
+        )
+        master_table_artifact.add(master_table, name="Evaluation Report")
+        wandb.log_artifact(master_table_artifact)
 
     def _metric_factory(self, metrics: List[METRICS]):
         "Create an iterable of metric classes for the evaluator to use, given a list of metric names."

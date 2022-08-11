@@ -20,3 +20,5 @@ def benchmark(adapter, config: DreamBenchConfig):
         images = adapter(input_dict)
 
         evaluator.evaluate(model_input=input_dict, model_output=images)
+
+    evaluator.log()
