@@ -138,6 +138,11 @@ wandb
 # scratchwork
 scratchwork*
 
+# models
+.models
+models
+checkpoints
+
 # benchmarks folder
 benchmarks
 benchmark
