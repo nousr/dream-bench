@@ -141,6 +141,7 @@ scratchwork*
 # benchmarks folder
 benchmarks
 benchmark
+predictions
 
 # tars
 *.tar
