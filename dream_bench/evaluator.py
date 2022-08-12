@@ -1,16 +1,17 @@
 import os
-import wandb
-import torch
+from pathlib import Path
+from typing import Any, Dict, List, Literal
+
 import numpy as np
 import pandas as pd
+import torch
+import wandb
+from torch.nn.functional import cosine_similarity
+from torchmetrics.image.fid import FrechetInceptionDistance
+from torchvision.transforms.functional import to_pil_image
+
 from dream_bench.helpers import exists
 from dream_bench.load_models import get_aesthetic_model, load_clip
-from torchmetrics.image.fid import FrechetInceptionDistance
-from typing import List, Any, Dict, Literal
-from torchvision.transforms.functional import to_pil_image
-from pathlib import Path
-
-# TODO: refactor device placement
 
 # Custom Types
 
@@ -113,26 +114,16 @@ class Aesthetic:
     METRIC_NAME = "Aesthetic"
     USES_INPUT = False
 
-    def __init__(self, clip_architecture: str = "ViT-L/14", clip_model=None) -> None:
-        assert clip_architecture in [
-            "ViT-L/14",
-            "ViT-B/32",
-        ], f"You must choose from the available aesthetic models ViT-L/14 or ViT-B/32 (got: {clip_architecture})"
-
+    def __init__(self, clip_model, clip_preprocess, clip_architecture) -> None:
         # get models
         self.aesthetic_model = get_aesthetic_model(clip_model=clip_architecture)
-        self.clip_model, self.preprocess = clip_model if exists(clip_model) else load_clip(clip_model=clip_architecture)
+        self.clip_model, self.preprocess = clip_model, clip_preprocess
 
     def _embed(self, images: torch.Tensor):
         "Embed an image with clip and return the encoded images."
         device = images.device
 
-        processed_images = torch.cat(
-            [self.preprocess(to_pil_image(img)).unsqueeze(0) for img in images],
-            dim=0,
-        ).float()
-
-        processed_images = processed_images.to(device)
+        processed_images = self.preprocess(images).to(device)
 
         return self.clip_model.encode_image(processed_images)
 
@@ -155,8 +146,8 @@ class ClipScore:
     METRIC_NAME = "ClipScore"
     USES_INPUT = True
 
-    def __init__(self, clip_architecture: str, clip_model=None) -> None:
-        self.clip_model, self.preprocess = clip_model if exists(clip_model) else load_clip(clip_model=clip_architecture)
+    def __init__(self, clip_model, clip_preprocess) -> None:
+        self.clip_model, self.preprocess = clip_model, clip_preprocess
 
     @convert_and_place_input
     def compute(
@@ -167,16 +158,23 @@ class ClipScore:
     ):
 
         "Compute the clip score of a given image/caption pair."
+
         # place models on proper device
         self.clip_model.to(device)
 
         # unpack model input
-        tokenized_text = model_input["tokenized_text.npy"]
+        tokenized_text = model_input["tokenized_text.npy"].to(device)
 
-        images = self.preprocess(model_output)
-        image_logits, _ = self.clip_model(images, tokenized_text)
+        images = self.preprocess(model_output).to(device)
 
-        return image_logits.softmax(dim=-1).detach().cpu().numpy()
+        image_embeddings = self.clip_model.encode_image(images)
+        text_embeddings = self.clip_model.encode_text(tokenized_text)
+
+        cos_similarities = cosine_similarity(image_embeddings, text_embeddings, dim=1)
+
+        print(cos_similarities.shape)
+
+        return cos_similarities.detach().cpu().numpy()
 
 
 class Evaluator:
@@ -184,11 +182,17 @@ class Evaluator:
     A class that facilliatates calculating various metrics given input from a model
     """
 
-    def __init__(self, metrics: List[METRICS], save_path: str, device="cpu") -> None:
+    def __init__(
+        self,
+        metrics: List[METRICS],
+        save_path: str,
+        device="cpu",
+        clip_architecture=None,
+    ) -> None:
         self.data: List[Any] = []
         self.num_entries: int = 0
         self.metric_names: List[str] = list(metrics)
-        self.metrics: set = self._metric_factory(metrics)
+        self.metrics: set = self._metric_factory(metrics, clip_architecture=clip_architecture, device=device)
 
         self.device = device
 
@@ -230,13 +234,13 @@ class Evaluator:
         # loop through each metric and compute the results
         for metric in self.metrics:
             scores[metric.METRIC_NAME] = (
-                metric().compute(
+                metric.compute(
                     model_input=model_input,
                     model_output=model_output,
                     device=self.device,
                 )
                 if metric.USES_INPUT
-                else metric().compute(model_output=model_output, device=self.device)
+                else metric.compute(model_output=model_output, device=self.device)
             ).squeeze()
 
         # cast dict to pandas array for easy adding
@@ -277,18 +281,37 @@ class Evaluator:
         master_table_artifact.add(master_table, name="Evaluation Report")
         wandb.log_artifact(master_table_artifact)
 
-    def _metric_factory(self, metrics: List[METRICS]):
+    def _metric_factory(self, metrics: List[METRICS], clip_architecture, device="cpu"):
         "Create an iterable of metric classes for the evaluator to use, given a list of metric names."
 
         metric_set: set = set()
 
+        # a clip model to use across all metrics
+        clip_model, clip_preprocess = None, None
+
         for metric in metrics:
-            if metric == "Aesthetic":
-                metric_set.add(Aesthetic)
-            elif metrics == "FID":
-                metric_set.add(FID)
-            elif metrics == "ClipScore":
-                metric_set.add(ClipScore)
+            if metric == "FID":
+                metric_set.add(FID())
+
+            elif metric == "Aesthetic":
+                assert exists(clip_architecture), "A clip architecture is required to use the Aesthetic Metric."
+                if not exists(clip_model):
+                    clip_model, clip_preprocess = load_clip(clip_model=clip_architecture, device=device)
+
+                metric_set.add(
+                    Aesthetic(
+                        clip_model=clip_model,
+                        clip_preprocess=clip_preprocess,
+                        clip_architecture=clip_architecture,
+                    )
+                )
+
+            elif metric == "ClipScore":
+                assert exists(clip_architecture), "A clip architecture is required to use the Clip Score."
+                if not exists(clip_model):
+                    clip_model, clip_preprocess = load_clip(clip_model=clip_architecture, device=device)
+                metric_set.add(ClipScore(clip_model=clip_model, clip_preprocess=clip_preprocess))
+
             else:
                 raise KeyError("That metric does not exist, or is mispelled.")
 

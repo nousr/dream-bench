@@ -7,6 +7,7 @@ from dream_bench.helpers import (
 )
 from urllib.request import urlretrieve
 from torch import load as torch_load, nn
+from torchvision.transforms import CenterCrop, Resize, Normalize, Compose, InterpolationMode
 from os.path import expanduser
 
 CACHE_FOLDER = os.path.join(os.path.expanduser("~"), ".cache", "dream_bench")
@@ -14,7 +15,7 @@ DEFAULT_PRIOR_STATE_URL = "https://huggingface.co/laion/DALLE2-PyTorch/resolve/m
 DEFAULT_PRIOR_CONFIG_URL = "https://huggingface.co/laion/DALLE2-PyTorch/raw/main/prior/prior_config.json"
 
 
-def _load_open_clip(clip_model, use_jit=True, device="cuda"):
+def _load_open_clip(clip_model, use_jit, device):
     "Load a clip model from the open-clip library"
 
     open_clip = import_or_print_error(
@@ -46,7 +47,15 @@ def load_clip(clip_model, use_jit=False, device="cpu"):
             fg="red",
         )
 
-        model, preprocess = clip.load(clip_model, device=device, jit=use_jit)
+        model, _ = clip.load(clip_model, device=device, jit=use_jit)
+
+    preprocess = Compose(
+        [
+            Resize(model.visual.input_resolution, interpolation=InterpolationMode.BICUBIC),
+            CenterCrop(model.visual.input_resolution),
+            Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+        ]
+    )
 
     model.eval()
 

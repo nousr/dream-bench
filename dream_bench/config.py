@@ -21,7 +21,6 @@ class WandbConfig(BaseModel):
     name: Optional[str] = None
 
     class Config:
-        # Each individual log type has it's own arguments that will be passed through the config
         extra = "allow"
 
 
@@ -29,9 +28,15 @@ class EvaluatorConfig(BaseModel):
     save_path: str = "predictions"
     metrics: List[METRICS] = ["Aesthetic"]
     device: str = "cpu"
+    clip_architecture: Optional[str]
 
     def load(self):
-        return Evaluator(metrics=self.metrics, save_path=self.save_path, device=self.device)  # pylint: disable=E1121
+        return Evaluator(
+            metrics=self.metrics,
+            save_path=self.save_path,
+            device=self.device,
+            clip_architecture=self.clip_architecture,
+        )
 
 
 class DreamBenchConfig(BaseModel):

@@ -8,7 +8,8 @@
         "project": "dream_bench_test"
     },
     "evaluator": {
-        "metrics": ["Aesthetic"],
-        "device": "cuda"
+        "metrics": ["Aesthetic", "ClipScore"],
+        "device": "cuda",
+        "clip_architecture": "ViT-L/14"
     }
 }
