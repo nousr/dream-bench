@@ -48,6 +48,8 @@ def load_clip(clip_model, use_jit=False, device="cpu"):
 
         model, preprocess = clip.load(clip_model, device=device, jit=use_jit)
 
+    model.eval()
+
     return model, preprocess
 
 
