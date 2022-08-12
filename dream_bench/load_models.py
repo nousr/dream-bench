@@ -129,7 +129,7 @@ def get_aesthetic_model(clip_model="ViT-L/14"):
     elif clip_model == "ViT-B/32":
         model_file = "vit_b_32"
     else:
-        raise NotImplementedError("No aesthetic model has been trained on that architecture.")
+        raise NotImplementedError(f"No aesthetic model has been trained on the {clip_model} architecture.")
 
     home = expanduser("~")
     cache_folder = home + "/.cache/emb_reader"
