@@ -121,10 +121,11 @@ Additional support may be added for other trackers in the future.
 - [x] Add wandb integration
 - [x] Build configuration
 - [x] Lint project & Capture unecessary warnings
-- [ ] Efficiently track runs with wandb
+- [x] Build out benchmarking interface for clip-based models
+- [x] Track runs with wandb (look for efficiency later)
 - [ ] Prioritize benchmarking for ongoing training runs
-- [ ] Build out benchmarking interface for clip-based models
 - [ ] Provide guide/scripts for formatting other datasets/url-lists
 - [ ] Add More tests
+- [ ] Profile code & look for optimizations
 - [ ] Publish to PyPi
 - [ ] Add support for distributed benchmarking
