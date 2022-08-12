@@ -136,7 +136,7 @@ wandb
 .vscode
 
 # scratchwork
-scratchwork.py
+scratchwork*
 
 # benchmarks folder
 benchmarks
