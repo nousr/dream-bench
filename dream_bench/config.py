@@ -28,9 +28,10 @@ class WandbConfig(BaseModel):
 class EvaluatorConfig(BaseModel):
     save_path: str = "predictions"
     metrics: List[METRICS] = ["Aesthetic"]
+    device: str = "cpu"
 
     def load(self):
-        return Evaluator(metrics=self.metrics, save_path=self.save_path)  # pylint: disable=E1121
+        return Evaluator(metrics=self.metrics, save_path=self.save_path, device=self.device)  # pylint: disable=E1121
 
 
 class DreamBenchConfig(BaseModel):

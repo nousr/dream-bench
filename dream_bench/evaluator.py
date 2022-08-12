@@ -10,8 +10,7 @@ from typing import List, Any, Dict, Literal
 from torchvision.transforms.functional import to_pil_image
 from pathlib import Path
 
-# TODO: fix devices
-# TODO: fix table formatting
+# TODO: add ability to select different device for evaluation tools
 
 # Custom Types
 
@@ -185,13 +184,13 @@ class Evaluator:
     A class that facilliatates calculating various metrics given input from a model
     """
 
-    def __init__(self, metrics: List[METRICS], save_path: str) -> None:
+    def __init__(self, metrics: List[METRICS], save_path: str, device="cpu") -> None:
         self.data: List[Any] = []
         self.num_entries: int = 0
         self.metric_names: List[str] = list(metrics)
         self.metrics: set = self._metric_factory(metrics)
 
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = device
 
         self.save_path = Path(save_path)
         os.makedirs(save_path, exist_ok=True)
