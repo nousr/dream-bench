@@ -6,7 +6,7 @@ from dream_bench.helpers import (
     is_url,
 )
 from urllib.request import urlretrieve
-from torch import cuda, load as torch_load, nn
+from torch import load as torch_load, nn
 from os.path import expanduser
 
 CACHE_FOLDER = os.path.join(os.path.expanduser("~"), ".cache", "dream_bench")
@@ -32,10 +32,8 @@ def _load_open_clip(clip_model, use_jit=True, device="cuda"):
     return model, preprocess
 
 
-def load_clip(clip_model, use_jit=False):
+def load_clip(clip_model, use_jit=False, device="cpu"):
     "Load a clip model from openai or open-clip"
-
-    device = "cuda" if cuda.is_available() else "cpu"
 
     if clip_model.startswith("open_clip:"):
         clip_model = clip_model[len("open_clip:") :]
@@ -77,10 +75,8 @@ def _download_prior(state_url: str, config_url: str):
     return prior_file, config_file
 
 
-def load_prior(checkpoint_path: str, config_path: str):
+def load_prior(checkpoint_path: str, config_path: str, device="cpu"):
     "Load a dalle2-pytorch diffusion prior model"
-
-    device = "cuda" if cuda.is_available() else "cpu"
 
     dalle2_train_config = import_or_print_error(
         "dalle2_pytorch.train_configs",

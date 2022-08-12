@@ -10,7 +10,7 @@ from typing import List, Any, Dict, Literal
 from torchvision.transforms.functional import to_pil_image
 from pathlib import Path
 
-# TODO: add ability to select different device for evaluation tools
+# TODO: refactor device placement
 
 # Custom Types
 
@@ -51,7 +51,7 @@ def convert_and_place_input(fn):
         # cast model output
 
         if "model_output" in kwargs and type(kwargs["model_output"] is torch.Tensor):
-            kwargs["model_output"].to(device)
+            kwargs["model_output"] = kwargs["model_output"].to(device)
         else:
             raise AssertionError("Model output is not a torch tensor.")
 

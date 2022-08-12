@@ -8,6 +8,7 @@
         "project": "dream_bench_test"
     },
     "evaluator": {
-        "metrics": ["Aesthetic"]
+        "metrics": ["Aesthetic"],
+        "device": "cuda"
     }
 }
