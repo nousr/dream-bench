@@ -32,14 +32,14 @@ def txt2embeddings(model: Module, architecture: str, text: torch.Tensor, batch_s
         model_input = text[i : i + batch_size]
 
         if architecture == "prior":
-            embeds.append(model.sample(model_input).detach().cpu())
+            embeds.append(model.sample(model_input).detach().cpu().numpy())
         elif architecture == "clip":
-            embeds.append(model.encode_text(model_input).detach().cpu())
+            embeds.append(model.encode_text(model_input).detach().cpu().numpy())
         else:
             click.secho(f"The {architecture} architecture is not yet supported.", fg="red")
             exit(1)
 
-    return torch.cat(embeds, dim=0).contiguous().numpy()
+    return np.concatenate(embeds, axis=0)
 
 
 def wds_create(
@@ -218,12 +218,12 @@ def main(
     clip_model = None
 
     if embed_text:
-        clip_model = load_clip(clip_model=clip_model)
+        clip_model = load_clip(clip_model=clip_model, device=DEVICE)
 
     prior_model = None
 
     if predict_image:
-        prior_model = load_prior(checkpoint_path=prior_checkpoint, config_path=prior_config)
+        prior_model = load_prior(checkpoint_path=prior_checkpoint, config_path=prior_config, device=DEVICE)
 
     # begin creating webdataset
 
