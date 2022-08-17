@@ -172,8 +172,6 @@ class ClipScore:
 
         cos_similarities = cosine_similarity(image_embeddings, text_embeddings, dim=1)
 
-        print(cos_similarities.shape)
-
         return cos_similarities.detach().cpu().numpy()
 
 
@@ -260,7 +258,7 @@ class Evaluator:
         Log all the results to wandb.
         """
 
-        # join both tables and publish as a third artifact
+        # join both tables and publish
 
         master_table = wandb.JoinedTable(self.prediction_table, self.metric_table, join_key="Key")
 
@@ -272,14 +270,6 @@ class Evaluator:
                 "Evaluation Report": master_table,
             }
         )
-
-        master_table_artifact = wandb.Artifact(
-            name="Master_Table",
-            description="A collection of all computed metrics for this evaluation run",
-            type="evaluation_table",
-        )
-        master_table_artifact.add(master_table, name="Evaluation Report")
-        wandb.log_artifact(master_table_artifact)
 
     def _metric_factory(self, metrics: List[METRICS], clip_architecture, device="cpu"):
         "Create an iterable of metric classes for the evaluator to use, given a list of metric names."
