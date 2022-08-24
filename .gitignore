@@ -137,6 +137,8 @@ wandb
 
 # scratchwork
 scratchwork*
+.scratchwork/
+scratchwork/
 
 # models
 .models
