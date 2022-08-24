@@ -12,6 +12,10 @@ from torchvision.transforms.functional import to_pil_image
 
 from dream_bench.helpers import exists
 from dream_bench.load_models import get_aesthetic_model, load_clip
+from dream_bench.tokenizer import tokenizer
+
+TOKENIZER_CONTEXT_LENGTH = 77
+TOKENIZER_TRUNCATE_TEXT = True
 
 # Custom Types
 
@@ -50,8 +54,7 @@ def convert_and_place_input(fn):
             kwargs["model_input"] = model_input
 
         # cast model output
-
-        if "model_output" in kwargs and type(kwargs["model_output"] is torch.Tensor):
+        if "model_output" in kwargs and isinstance(kwargs["model_output"], torch.Tensor):
             kwargs["model_output"] = kwargs["model_output"].to(device)
         else:
             raise AssertionError("Model output is not a torch tensor.")
@@ -163,6 +166,12 @@ class ClipScore:
         self.clip_model.to(device)
 
         # unpack model input
+        if "tokenized_text.npy" not in model_input:
+            captions = model_input["caption.txt"]
+            model_input["tokenized_text.npy"] = tokenizer.tokenize(
+                captions, context_length=TOKENIZER_CONTEXT_LENGTH, truncate_text=TOKENIZER_TRUNCATE_TEXT
+            )
+
         tokenized_text = model_input["tokenized_text.npy"].to(device)
 
         images = self.preprocess(model_output).to(device)
@@ -189,6 +198,7 @@ class Evaluator:
     ) -> None:
         self.data: List[Any] = []
         self.num_entries: int = 0
+        self.evaluation_iteration: int = 0
         self.metric_names: List[str] = list(metrics)
         self.metrics: set = self._metric_factory(metrics, clip_architecture=clip_architecture, device=device)
 
@@ -209,7 +219,7 @@ class Evaluator:
 
         for key, caption, prediction in zip(keys, captions, model_output):
             # save image to disk
-            pil_image = to_pil_image(prediction)
+            pil_image = to_pil_image(prediction, mode="RGB")
             prediction_path = Path(f"{self.save_path}/prediction_{self.num_entries:06d}.jpg")
             pil_image.save(prediction_path)
 
@@ -270,6 +280,14 @@ class Evaluator:
                 "Evaluation Report": master_table,
             }
         )
+
+        # compute basic average of each metric
+        average_scores = {}
+
+        for metric in self.metric_names:
+            average_scores[f"Average {metric}"] = np.array(self.metric_table.get_column(metric)).mean()
+
+        wandb.log(average_scores, step=self.evaluation_iteration)
 
     def _metric_factory(self, metrics: List[METRICS], clip_architecture, device="cpu"):
         "Create an iterable of metric classes for the evaluator to use, given a list of metric names."
