@@ -105,6 +105,8 @@ Before you run evaluation, you must preprocess your dataset/prompt-list so that 
 
 For more information on how this can be done, take a look at the [dedicated readme](dream_bench/preprocessing/README.md)
 
+Next you will need to create a configuration file to run your evaluation, this will tell dream-bench how to benchmark your run, some information on how to build this config file you can read its [dedicated readme](configs/README.md)
+
 ## Tracking
 
 To track your experiments, `dream_bench` utilizes [weights & biases](https://wandb.ai). With `wandb` it is possible to easily view your generations in an easy-to-read format, compile reports, and query against/across your runs.
