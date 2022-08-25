@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
 Before you run evaluation, you must preprocess your dataset/prompt-list so that is compatible with `dream_bench`.
 
-For more information on how this can be done, take a look at the [dedicated readme](dream_bench/preprocessing/README.md)
+For more information on how this can be done, take a look at the [dedicated readme](dataset_readme.md)
 
 Next you will need to create a configuration file to run your evaluation, this will tell dream-bench how to benchmark your run, some information on how to build this config file you can read its [dedicated readme](configs/README.md)
 
