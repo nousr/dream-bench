@@ -1,6 +1,6 @@
 # Configuration
 
-Dream bench utilizes pydantic classes to manage configuration of your benchmarking run. You can view an example of it [here](configs/example_config.json)
+Dream bench utilizes pydantic classes to manage configuration of your benchmarking run. You can view an example of it [here](example_config.json)
 
 ## Dataset Config
 
