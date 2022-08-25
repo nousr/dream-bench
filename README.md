@@ -125,6 +125,9 @@ Additional support may be added for other trackers in the future.
 - [x] Lint project & Capture unecessary warnings
 - [x] Build out benchmarking interface for clip-based models
 - [x] Track runs with wandb (look for efficiency later)
+- [x] Track averages of each metric
+- [ ] Add FID metric
+- [ [ Add distributed evaluation
 - [ ] Prioritize benchmarking for ongoing training runs
 - [ ] Provide guide/scripts for formatting other datasets/url-lists
 - [ ] Add More tests
