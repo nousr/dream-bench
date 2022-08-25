@@ -127,7 +127,7 @@ Additional support may be added for other trackers in the future.
 - [x] Track runs with wandb (look for efficiency later)
 - [x] Track averages of each metric
 - [ ] Add FID metric
-- [ [ Add distributed evaluation
+- [ ] Add option for distributed evaluation
 - [ ] Prioritize benchmarking for ongoing training runs
 - [ ] Provide guide/scripts for formatting other datasets/url-lists
 - [ ] Add More tests
