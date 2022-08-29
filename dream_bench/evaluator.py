@@ -1,14 +1,14 @@
-import os
-from pathlib import Path
-from typing import Any, Dict, List, Literal
+from typing import Dict, List, Literal
 
 import numpy as np
 import pandas as pd
 import torch
 import wandb
+from toma import toma
 from torch.nn.functional import cosine_similarity
+from torch.utils.data import DataLoader
 from torchmetrics.image.fid import FrechetInceptionDistance
-from torchvision.transforms.functional import to_pil_image
+from webdataset import WebDataset
 
 from dream_bench.helpers import exists
 from dream_bench.load_models import get_aesthetic_model, load_clip
@@ -69,43 +69,41 @@ class FID:
     The FID metric computes the Frechet Inception Distance of predicted images given a distribution of real images.
     """
 
-    # FIXME: implement upfront cache-ing of the real images to save on time
-
     METRIC_NAME = "FID"
     USES_INPUT = True
 
-    def __init__(self, feature=64) -> None:
+    def __init__(self, feature=2048) -> None:
         self.fid = FrechetInceptionDistance(feature=feature)
 
-    def _reset(self):
-        self.fid.reset()
+    def format_tensor(self, x):
+        """Format the tensor to be FID friendly (uint8)."""
 
+        # check if images are normalized
+        if x.max <= 1.0:
+            x = x.mul(255).add(0.5).clamp(0, 255)
+
+        return x.type(torch.uint8)
+
+    @toma.batch(initial_batchsize=512)
     @convert_and_place_input
     def compute(
         self,
-        model_input: Dict[str, torch.Tensor],
+        batch_size: int,
+        dataset: WebDataset,
         model_output: torch.Tensor,
         device: str,
     ):
         """Compute FID"""
-        # reset model
-        self._reset()
-
         # place model on device
         self.fid.to(device)
 
-        # ensure the metric can be computed
-        assert exists(model_input["raw_image.npy"]), "You must provide a distribution of real images to compute FID."
+        for model_input in DataLoader(dataset=dataset, batch_size=batch_size):
+            real_images = self.format_tensor(model_input["real_image.npy"])
+            model_output = self.format_tensor(model_output)
 
-        real_images = model_input["raw_image.npy"].mul(255).add(0.5).clamp(0, 255).type(torch.uint8)
+            self.fid.update(imgs=real_images, real=True)
+            self.fid.update(imgs=model_output, real=False)
 
-        model_output = model_output.mul(255).add(0.5).clamp(0, 255).type(torch.uint8)
-
-        # Update model
-        self.fid.update(imgs=real_images, real=True)
-        self.fid.update(imgs=model_output, real=False)
-
-        # Compute and return FID
         return self.fid.compute().detach().cpu().numpy()
 
 
@@ -192,102 +190,55 @@ class Evaluator:
     def __init__(
         self,
         metrics: List[METRICS],
-        save_path: str,
+        dataset: WebDataset,
         device="cpu",
         clip_architecture=None,
+        default_batch_size=128,
     ) -> None:
-        self.data: List[Any] = []
-        self.num_entries: int = 0
-        self.evaluation_iteration: int = 0
+        self.device: torch.device = device
+        self.dataset: WebDataset = dataset
+        self.default_batch_size: int = default_batch_size
         self.metric_names: List[str] = list(metrics)
         self.metrics: set = self._metric_factory(metrics, clip_architecture=clip_architecture, device=device)
 
-        self.device = device
+        self.predictions: List[torch.Tensor] = []
 
-        self.save_path = Path(save_path)
-        os.makedirs(save_path, exist_ok=True)
-
-        self.prediction_table = wandb.Table(columns=["Key", "Captions", "Predictions"])
-        self.metric_table = wandb.Table(columns=["Key", *self.metric_names])
-
-    def _record_predictions(self, model_input: dict, model_output: torch.Tensor):
+    def record_predictions(self, model_output: torch.Tensor):
         """
-        Record model output and save to disk, then track it in a table using wandb.
+        Save the model output.
         """
-        captions = model_input["caption.txt"]
-        keys = model_input["__key__"]
+        self.predictions.append(*model_output.detach().cpu())
 
-        for key, caption, prediction in zip(keys, captions, model_output):
-            # save image to disk
-            pil_image = to_pil_image(prediction, mode="RGB")
-            prediction_path = Path(f"{self.save_path}/prediction_{self.num_entries:06d}.jpg")
-            pil_image.save(prediction_path)
-
-            # create associated wandb.Image and save to wandb as a file
-            wandb_image = wandb.Image(str(prediction_path), caption=caption)
-            self.prediction_table.add_data(key, caption, wandb_image)
-            wandb.save(str(prediction_path))
-
-            self.num_entries += 1
-
-    def _record_metrics(self, model_input: dict, model_output: torch.Tensor):
+    def evaluate(self):
         """
-        Evaluate a model's output and record the results to a table.
+        Evaluate the model's output once all the data has been collected.
         """
 
-        scores = {
-            "Key": model_input["__key__"],
-        }
+        results = {}
+        summaries = {}
 
-        # loop through each metric and compute the results
         for metric in self.metrics:
-            scores[metric.METRIC_NAME] = (
-                metric.compute(
-                    model_input=model_input,
-                    model_output=model_output,
-                    device=self.device,
-                )
-                if metric.USES_INPUT
-                else metric.compute(model_output=model_output, device=self.device)
-            ).squeeze()
+            kwargs = {"batchsize": self.default_batch_size, "predictions": self.predictions, "device": self.device}
+            kwargs.update({"dataset": self.dataset}) if metric.USES_INPUT else kwargs.update({})
 
-        # cast dict to pandas array for easy adding
-        for row in pd.DataFrame.from_dict(scores)[["Key", *self.metric_names]].to_numpy():
-            self.metric_table.add_data(*row)
+            result = metric(**kwargs)
 
-    def evaluate(self, model_input: dict, model_output: torch.Tensor):
-        """
-        Record the model's output and incrementally evaluate it.
-        """
-        self._record_predictions(model_input=model_input, model_output=model_output)
-        self._record_metrics(model_input=model_input, model_output=model_output)
-        print(f"Evaluated Up To #{self.num_entries:06d}")
+            if metric.IS_SUMMARY:
+                summaries[metric] = result
+            else:
+                results[metric] = result
+                summaries[metric] = result.mean()
 
-    def log(self):
+    def _log(self, results, summaries):
         """
-        Log all the results to wandb.
+        Log all the results to wandb:
+            - Summaries get logged as charts.
+            - Results is converted to a `wandb.Table` through `pd.DataFrame`.
         """
 
-        # join both tables and publish
-
-        master_table = wandb.JoinedTable(self.prediction_table, self.metric_table, join_key="Key")
-
-        # log the tables
-        wandb.log(
-            {
-                "Metric Table": self.metric_table,
-                "Predictions Table": self.prediction_table,
-                "Evaluation Report": master_table,
-            }
-        )
-
-        # compute basic average of each metric
-        average_scores = {}
-
-        for metric in self.metric_names:
-            average_scores[f"Average {metric}"] = np.array(self.metric_table.get_column(metric)).mean()
-
-        wandb.log(average_scores, step=self.evaluation_iteration)
+        results_table = wandb.Table(dataframe=pd.DataFrame(data=results))
+        report = summaries.update({"Evaluation Report": results_table})
+        wandb.log(report)
 
     def _metric_factory(self, metrics: List[METRICS], clip_architecture, device="cpu"):
         "Create an iterable of metric classes for the evaluator to use, given a list of metric names."
