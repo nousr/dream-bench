@@ -1,9 +1,10 @@
 from json import load
-from pydantic import BaseModel
 from typing import List, Optional
+
+from pydantic import BaseModel
 from webdataset import WebDataset
-from torch.utils.data import DataLoader
-from dream_bench.evaluator import Evaluator, METRICS
+
+from dream_bench.evaluator import METRICS, Evaluator
 
 
 class DatasetConfig(BaseModel):
@@ -11,8 +12,7 @@ class DatasetConfig(BaseModel):
     batch_size: int
 
     def load(self):
-        dataset = WebDataset(self.path).decode()
-        return DataLoader(dataset=dataset, batch_size=self.batch_size)
+        return WebDataset(self.path).decode()
 
 
 class WandbConfig(BaseModel):
@@ -29,13 +29,16 @@ class EvaluatorConfig(BaseModel):
     metrics: List[METRICS] = ["Aesthetic"]
     device: str = "cpu"
     clip_architecture: Optional[str]
+    batch_size: int = 128
 
-    def load(self):
+    def load(self, dataset):
         return Evaluator(
             metrics=self.metrics,
             save_path=self.save_path,
             device=self.device,
             clip_architecture=self.clip_architecture,
+            dataset=dataset,
+            batch_size=self.batch_size,
         )
 
 
