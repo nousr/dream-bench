@@ -20,6 +20,8 @@ def benchmark(adapter, config: DreamBenchConfig):
     # begin benchmarking
     for input_dict in DataLoader(dataset=dataset, batch_size=config.dataset.batch_size):
         images = adapter(input_dict)
-        evaluator.evaluate(model_input=input_dict, model_output=images)
-
+        evaluator.record_predictions(model_output=images)
+    
+    # compute benchmarks
+    evaluator.evaluate()
     evaluator.log()
