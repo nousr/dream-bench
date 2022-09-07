@@ -25,20 +25,18 @@ class WandbConfig(BaseModel):
 
 
 class EvaluatorConfig(BaseModel):
-    save_path: str = "predictions"
     metrics: List[METRICS] = ["Aesthetic"]
     device: str = "cpu"
     clip_architecture: Optional[str]
-    batch_size: int = 128
+    default_batch_size: int = 128
 
     def load(self, dataset):
         return Evaluator(
             metrics=self.metrics,
-            save_path=self.save_path,
             device=self.device,
             clip_architecture=self.clip_architecture,
             dataset=dataset,
-            batch_size=self.batch_size,
+            default_batch_size=self.default_batch_size,
         )
 
 
