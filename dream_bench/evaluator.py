@@ -229,6 +229,8 @@ class Evaluator:
                 results[metric] = result
                 summaries[metric] = result.mean()
 
+        self._log(results, summaries)
+
     def _log(self, results, summaries):
         """
         Log all the results to wandb:
