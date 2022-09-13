@@ -1,10 +1,9 @@
-import wandb
 from torch.utils.data import DataLoader
 
 from dream_bench.config import DreamBenchConfig
 
 
-def benchmark(adapter, config: DreamBenchConfig):
+def benchmark(model, adapter, config: DreamBenchConfig):
     """
     Benchmark a model
     """
@@ -13,15 +12,14 @@ def benchmark(adapter, config: DreamBenchConfig):
     dataset = config.dataset.load()
 
     # init the user's wandb
-    wandb.init(project=config.wandb.project, entity=config.wandb.entity, name=config.wandb.name)
+    config.wandb.init()
 
     evaluator = config.evaluator.load(dataset=dataset)
 
     # begin benchmarking
     for input_dict in DataLoader(dataset=dataset, batch_size=config.dataset.batch_size):
-        images = adapter(input_dict)
+        images = adapter(model, input_dict)
         evaluator.record_predictions(model_output=images)
-    
+
     # compute benchmarks
     evaluator.evaluate()
-    evaluator.log()

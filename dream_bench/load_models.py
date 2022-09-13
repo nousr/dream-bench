@@ -26,8 +26,14 @@ def _load_open_clip(clip_model, use_jit, device):
 
     pretrained = dict(open_clip.list_pretrained())
     checkpoint = pretrained[clip_model]
-    model, _, preprocess = open_clip.create_model_and_transforms(
-        clip_model, pretrained=checkpoint, device=device, jit=use_jit
+    model, _, _ = open_clip.create_model_and_transforms(clip_model, pretrained=checkpoint, device=device, jit=use_jit)
+
+    preprocess = Compose(
+        [
+            Resize(model.visual.input_resolution, interpolation=InterpolationMode.BICUBIC),
+            CenterCrop(model.visual.input_resolution),
+            Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+        ]
     )
 
     return model, preprocess
