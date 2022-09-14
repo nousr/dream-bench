@@ -18,6 +18,12 @@ class DatasetConfig(BaseModel):
 
 
 class WandbConfig(BaseModel):
+    """
+    Configure the wandb settings for this run.
+
+    NOTE: use 'id' to specify the run_id you wish to resume
+    """
+
     entity: str  # your wandb username
     project: str  # project name
     name: Optional[str] = None  # name of your run

@@ -37,10 +37,14 @@ def make_loaders(batchsize: int, model_input: WebDataset, model_output: List[tor
         - A zipped version of both datasets to sample from.
     """
 
-    model_input = DataLoader(dataset=model_input, batch_size=batchsize)
-    model_output = DataLoader(dataset=TensorDataset(torch.as_tensor(model_output)), batch_size=batchsize)
+    input_loader = DataLoader(dataset=model_input, batch_size=batchsize)
 
-    return zip(model_input, model_output)
+    concat_tensors = torch.as_tensor(model_output)
+    tensor_dataset = TensorDataset(concat_tensors)
+
+    output_loader = DataLoader(dataset=tensor_dataset, batch_size=batchsize)
+
+    return zip(input_loader, output_loader)
 
 
 class FID:
@@ -74,6 +78,8 @@ class FID:
         predictions: torch.Tensor,
         device: str,
     ):
+        """Compute the FID of a distribution of real and generated images"""
+
         @toma.execute.batch(initial_batchsize=512)
         def _block(batchsize):
             # place model on device
@@ -124,6 +130,8 @@ class Aesthetic:
         return self.clip_model.encode_image(processed_images)
 
     def compute(self, predictions: torch.Tensor, device: str):
+        """Compute the Aesthetic quality of a collection of images."""
+
         @toma.execute.batch(initial_batchsize=512)
         def _block(batchsize):
             # place models on proper device
@@ -182,7 +190,9 @@ class ClipScore:
                 if "tokenized_text.npy" not in model_input:
                     captions = model_input["caption.txt"]
                     model_input["tokenized_text.npy"] = tokenizer.tokenize(
-                        captions, context_length=TOKENIZER_CONTEXT_LENGTH, truncate_text=TOKENIZER_TRUNCATE_TEXT
+                        captions,
+                        context_length=TOKENIZER_CONTEXT_LENGTH,
+                        truncate_text=TOKENIZER_TRUNCATE_TEXT,
                     )
 
                 model_output = model_output[0].to(device)
@@ -245,7 +255,9 @@ class Evaluator:
         # compute the requested metrics
         for metric in self.metrics:
             kwargs = {"predictions": tensor_predictions, "device": self.device}
-            kwargs.update({"dataset": self.dataset}) if metric.USES_INPUT else kwargs.update({})
+
+            if metric.USES_INPUT:
+                kwargs.update({"dataset": self.dataset})
 
             result = metric.compute(**kwargs)
 
@@ -279,7 +291,10 @@ class Evaluator:
         results_table = wandb.Table(dataframe=results_df)
 
         results_table.add_column(name="Caption", data=self._get_captions())
-        results_table.add_column(name="Prediction", data=self._to_wandb_image(torch.concat(self.predictions, dim=0)))
+        results_table.add_column(
+            name="Prediction",
+            data=self._to_wandb_image(torch.concat(self.predictions, dim=0)),
+        )
         summaries.update({f"Evaluation Report: #{wandb.run.step}": results_table})
 
         wandb.log(summaries)

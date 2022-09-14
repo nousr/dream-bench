@@ -7,7 +7,13 @@ from dream_bench.helpers import (
 )
 from urllib.request import urlretrieve
 from torch import load as torch_load, nn
-from torchvision.transforms import CenterCrop, Resize, Normalize, Compose, InterpolationMode
+from torchvision.transforms import (
+    CenterCrop,
+    Resize,
+    Normalize,
+    Compose,
+    InterpolationMode,
+)
 from os.path import expanduser
 
 CACHE_FOLDER = os.path.join(os.path.expanduser("~"), ".cache", "dream_bench")
@@ -32,7 +38,10 @@ def _load_open_clip(clip_model, use_jit, device):
         [
             Resize(model.visual.input_resolution, interpolation=InterpolationMode.BICUBIC),
             CenterCrop(model.visual.input_resolution),
-            Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+            Normalize(
+                (0.48145466, 0.4578275, 0.40821073),
+                (0.26862954, 0.26130258, 0.27577711),
+            ),
         ]
     )
 
@@ -59,7 +68,10 @@ def load_clip(clip_model, use_jit=False, device="cpu"):
         [
             Resize(model.visual.input_resolution, interpolation=InterpolationMode.BICUBIC),
             CenterCrop(model.visual.input_resolution),
-            Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+            Normalize(
+                (0.48145466, 0.4578275, 0.40821073),
+                (0.26862954, 0.26130258, 0.27577711),
+            ),
         ]
     )
 
