@@ -59,20 +59,20 @@ class FID:
         """Format the tensor to be FID friendly (uint8)."""
 
         # check if images are normalized
-        if x.max <= 1.0:
+       
+        if x.max().item() <= 1.0:
+            x = x.float()
             x = x.mul(255).add(0.5).clamp(0, 255)
+        
 
         return x.type(torch.uint8)
 
-    @toma.batch(initial_batchsize=512)
     def compute(
         self,
         dataset: WebDataset,
         predictions: torch.Tensor,
         device: str,
     ):
-        """Compute FID"""
-
         @toma.execute.batch(initial_batchsize=512)
         def _block(batchsize):
             # place model on device
@@ -85,16 +85,19 @@ class FID:
                 real_images = self.format_tensor(model_input["real_image.npy"])
                 model_output = self.format_tensor(model_output[0])
 
-                real_images.to(device)
-                model_output.to(device)
+                real_images = real_images.to(device)
+                model_output = model_output.to(device)
 
                 self.fid.update(imgs=real_images, real=True)
                 self.fid.update(imgs=model_output, real=False)
 
-            # move model back to cpu
-            self.fid.to("cpu")
+            results =  self.fid.compute().detach().cpu().numpy().squeeze()
 
-            return self.fid.compute().detach().cpu().numpy().squeeze()
+            # move model back to cpu
+            self.fid = self.fid.to("cpu")
+            
+            return results
+
 
         return _block
 

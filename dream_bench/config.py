@@ -35,8 +35,6 @@ class WandbConfig(BaseModel):
 
         wandb.init(**kwargs)
             
-            
-
 
 class EvaluatorConfig(BaseModel):
     metrics: List[METRICS] = ["Aesthetic"]
