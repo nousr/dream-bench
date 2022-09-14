@@ -58,13 +58,15 @@ class FID:
     def format_tensor(self, x):
         """Format the tensor to be FID friendly (uint8)."""
 
-        # check if images are normalized
+        if x.type == torch.uint8:
+            return x
 
+        # from https://github.com/lucidrains/DALLE2-pytorch/blob/0d82dff9c53a7a74cbd66cf8930866308bd9ff49/train_decoder.py#L202
         if x.max().item() <= 1.0:
             x = x.float()
             x = x.mul(255).add(0.5).clamp(0, 255)
 
-        return x.type(torch.uint8)
+        return x.to(torch.uint8)
 
     def compute(
         self,
