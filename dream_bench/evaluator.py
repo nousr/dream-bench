@@ -59,11 +59,10 @@ class FID:
         """Format the tensor to be FID friendly (uint8)."""
 
         # check if images are normalized
-       
+
         if x.max().item() <= 1.0:
             x = x.float()
             x = x.mul(255).add(0.5).clamp(0, 255)
-        
 
         return x.type(torch.uint8)
 
@@ -91,13 +90,12 @@ class FID:
                 self.fid.update(imgs=real_images, real=True)
                 self.fid.update(imgs=model_output, real=False)
 
-            results =  self.fid.compute().detach().cpu().numpy().squeeze()
+            results = self.fid.compute().detach().cpu().numpy().squeeze()
 
             # move model back to cpu
             self.fid = self.fid.to("cpu")
-            
-            return results
 
+            return results
 
         return _block
 
@@ -265,7 +263,7 @@ class Evaluator:
         wandb_images = []
 
         for image in images:
-            wandb_images.append(wandb.Image(data_or_path=image.permute(1,2,0).detach().cpu().numpy()))
+            wandb_images.append(wandb.Image(data_or_path=image.permute(1, 2, 0).detach().cpu().numpy()))
 
         return wandb_images
 
