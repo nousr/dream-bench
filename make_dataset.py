@@ -5,6 +5,8 @@ import json
 import click
 import torch
 import numpy as np
+import pandas as pd
+from PIL import Image
 from torch.nn import Module
 from torch.cuda import is_available
 from webdataset import ShardWriter
@@ -15,6 +17,40 @@ from dream_bench.helpers import print_ribbon
 DEVICE = "cuda" if is_available() else "cpu"
 TOKENIZER_CONTEXT_LENGTH = 77
 TOKENIZER_TRUNCATE_TEXT = True
+
+
+def load_prompts(filepath, prompt_repeat):
+    """
+    Load the prompts from a file
+    """
+
+    if filepath.endswith(".json"):
+        with open(filepath, "r") as f:
+            return np.array(json.load(f)).repeat(prompt_repeat)
+    elif filepath.endswith(".parquet"):
+        df = pd.read_parquet(filepath)
+        try:
+            return np.array(df["caption"].values).repeat(prompt_repeat)
+        except KeyError as e:
+            print(e)
+            print("There is no `caption` key in your dataframe")
+    else:
+        print("This filetype is not supported")
+        exit(1)
+
+
+def load_images(filepath, resize=None):
+    images = []
+
+    for file in os.listdir(filepath):
+        image = Image.open(os.path.join(filepath, file))
+
+        if resize is not None:
+            image = image.resize((resize, resize), Image.Resampling.LANCZOS)
+
+        images.append(np.array(image).transpose(2, 0, 1))
+
+    return images
 
 
 def txt2embeddings(model: Module, architecture: str, text: torch.Tensor, batch_size: int):
@@ -44,6 +80,7 @@ def txt2embeddings(model: Module, architecture: str, text: torch.Tensor, batch_s
 
 def wds_create(
     prompts: list,
+    images: list,
     batch_size: int,
     output_folder: str,
     filename: str,
@@ -92,11 +129,13 @@ def wds_create(
             tar_keys = {"__key__": "%04d" % idx, "caption.txt": caption}
 
             if predict_image:
-                tar_keys["prior_image_embedding.npy"] = prior_image_embeddings[idx]
+                tar_keys["prior_image_embedding.npy"] = prior_image_embeddings[idx].detach().cpu().numpy()
             if embed_text:
-                tar_keys["clip_text_embedding.npy"] = clip_text_embeddings[idx]
+                tar_keys["clip_text_embedding.npy"] = clip_text_embeddings[idx].detach().cpu().numpy()
             if tokenize_text:
                 tar_keys["tokenized_text.npy"] = tokenized_text[idx].detach().cpu().numpy()
+            if images is not None:
+                tar_keys["real_image.npy"] = images[idx]
 
             sink.write(tar_keys)
 
@@ -105,8 +144,19 @@ def wds_create(
 @click.option(
     "--prompt-list",
     type=str,
-    help="A json file containing a list of prompts.",
+    help="A json or parquet file containing a list of prompts.",
     required=True,
+)
+@click.option(
+    "--real-images",
+    type=str,
+    help="A path to a folder containing real images",
+    default=None,
+)
+@click.option(
+    "--resize",
+    type=int,
+    help="What size to reisze to when loading real images.",
 )
 @click.option(
     "--output-folder",
@@ -166,6 +216,8 @@ def wds_create(
 )
 def main(
     prompt_list,
+    real_images,
+    resize,
     output_folder,
     batch_size,
     prompt_repeat,
@@ -209,12 +261,12 @@ def main(
         exit(1)
 
     # load prompt list
+    prompts = load_prompts(prompt_list, prompt_repeat)
 
-    with open(prompt_list, "r") as f:
-        prompts = np.array(json.load(f)).repeat(prompt_repeat)
+    # load real images
+    images = load_images(real_images, resize) if real_images is not None else None
 
     # grab models
-
     clip_model = None
 
     if embed_text:
@@ -226,9 +278,9 @@ def main(
         prior_model = load_prior(checkpoint_path=prior_checkpoint, config_path=prior_config, device=DEVICE)
 
     # begin creating webdataset
-
     wds_create(
         prompts=prompts,
+        images=images,
         batch_size=batch_size,
         output_folder=output_folder,
         filename=filename,

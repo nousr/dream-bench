@@ -1,0 +1,19 @@
+{
+    "dataset": {
+        "path": "benchmarks/dome/dome-0000.tar",
+        "batch_size": 8
+    },
+    "wandb": {
+        "entity": "nousr_laion",
+        "project": "dream_bench_test",
+        "id": "fl17v790"
+    },
+    "evaluator": {
+        "metrics": [
+            "Aesthetic",
+            "ClipScore"
+        ],
+        "device": "cuda",
+        "clip_architecture": "ViT-L/14"
+    }
+}

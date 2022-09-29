@@ -1,9 +1,12 @@
 from json import load
-from pydantic import BaseModel
 from typing import List, Optional
+
+import wandb
+from pydantic import BaseModel
+from wandb.util import generate_id
 from webdataset import WebDataset
-from torch.utils.data import DataLoader
-from dream_bench.evaluator import Evaluator, METRICS
+
+from dream_bench.evaluator import METRICS, Evaluator
 
 
 class DatasetConfig(BaseModel):
@@ -11,31 +14,47 @@ class DatasetConfig(BaseModel):
     batch_size: int
 
     def load(self):
-        dataset = WebDataset(self.path).decode()
-        return DataLoader(dataset=dataset, batch_size=self.batch_size)
+        return WebDataset(self.path).decode()
 
 
 class WandbConfig(BaseModel):
+    """
+    Configure the wandb settings for this run.
+
+    NOTE: use 'id' to specify the run_id you wish to resume
+    """
+
     entity: str  # your wandb username
     project: str  # project name
-    name: Optional[str] = None
+    name: Optional[str] = None  # name of your run
+    id: Optional[str] = None  # run_id to resume a specific run
+    resume: str = "allow"  # wandb resume method
 
     class Config:
         extra = "allow"
 
+    def init(self):
+        kwargs = self.dict()
+
+        if self.id is None:
+            kwargs["id"] = generate_id()
+
+        wandb.init(**kwargs)
+
 
 class EvaluatorConfig(BaseModel):
-    save_path: str = "predictions"
     metrics: List[METRICS] = ["Aesthetic"]
     device: str = "cpu"
     clip_architecture: Optional[str]
+    default_batch_size: int = 128
 
-    def load(self):
+    def load(self, dataset):
         return Evaluator(
             metrics=self.metrics,
-            save_path=self.save_path,
             device=self.device,
             clip_architecture=self.clip_architecture,
+            dataset=dataset,
+            default_batch_size=self.default_batch_size,
         )
 
 
