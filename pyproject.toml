@@ -1,0 +1,10 @@
+[tool.mypy]
+python_version = 3.10
+ignore_missing_imports = True
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning:wandb.*",
+    "ignore::DeprecationWarning:torchvision.*"
+]
